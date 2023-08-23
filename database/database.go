@@ -40,6 +40,13 @@ func (db *Database) write_object(oid []byte, content []byte) error {
 	object_dir := strings.Join([]string{db.path, oid_hex[0:2]}, string(os.PathSeparator))
 	object_path := strings.Join([]string{object_dir, oid_hex[2:]}, string(os.PathSeparator))
 
+	file, err := os.Open(object_path)
+	defer file.Close()
+
+	if err != nil && os.IsExist(err) {
+		return nil
+	}
+
 	if err := os.MkdirAll(object_dir, defaultPermission); err != nil {
 		return err
 	}
