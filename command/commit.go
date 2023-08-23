@@ -6,12 +6,12 @@ package command
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/mohamedsaberibrahim/gity/database"
+	"github.com/mohamedsaberibrahim/gity/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -69,21 +69,23 @@ var commitCmd = &cobra.Command{
 		db.Store(&tree)
 		author := database.Author{}
 		author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
+
+		r := reference.Ref{}
+		r.New(git_path)
+		parent, _ := r.ReadHead()
 		commit := database.Commit{}
-		commit.New(tree.GetOid(), author, message)
+		commit.New(parent, tree.GetOid(), author, message)
 		db.Store(&commit)
 
-		f, err := os.Create(strings.Join([]string{git_path, "HEAD"}, string(os.PathSeparator)))
+		err = r.UpdateHead(commit.GetOid())
 		if err != nil {
-			log.Fatal(err)
+			fmt.Print(err)
 		}
-		defer f.Close()
-		oid_hex := fmt.Sprintf("%x", commit.GetOid())
-		_, err = f.WriteString(oid_hex)
-		if err != nil {
-			log.Fatal(err)
+		root_commit := ""
+		if parent == nil {
+			root_commit = "(root-commit) "
 		}
-		fmt.Printf("[(root-commit) %x] %s\n", commit.GetOid(), commit.GetMessage())
+		fmt.Printf("[%s%x] %s\n", root_commit, commit.GetOid(), commit.GetMessage())
 	},
 }
 
