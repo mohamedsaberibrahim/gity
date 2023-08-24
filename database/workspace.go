@@ -27,3 +27,7 @@ func (w *Workspace) ReadFile(file fs.DirEntry) ([]byte, error) {
 	full_dir := strings.Join([]string{w.root_path, file.Name()}, string(os.PathSeparator))
 	return os.ReadFile(full_dir)
 }
+
+func (w *Workspace) StatFile(file fs.DirEntry) (fs.FileInfo, error) {
+	return os.Stat(file.Name())
+}

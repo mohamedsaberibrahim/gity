@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	mode        = 100644
 	entryFormat = "Z*H40"
 )
 
@@ -27,7 +26,7 @@ func (t *Tree) ToString() string {
 	var entries []byte
 
 	for _, entry := range t.entries {
-		entries = append(entries, []byte(fmt.Sprintf("%d %s%x", mode, entry.GetName(), 0x00))...)
+		entries = append(entries, []byte(fmt.Sprintf("%s %s%x", entry.GetMode(), entry.GetName(), 0x00))...)
 
 		entries = append(entries, entry.GetOid()...)
 	}

@@ -60,7 +60,11 @@ var commitCmd = &cobra.Command{
 			if err != nil {
 				fmt.Print(err)
 			}
-			entry.New(file.Name(), blob.GetOid())
+			stat, err := workspace.StatFile(file)
+			if err != nil {
+				fmt.Print(err)
+			}
+			entry.New(file.Name(), blob.GetOid(), stat)
 			entries = append(entries, entry)
 		}
 
