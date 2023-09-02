@@ -5,28 +5,20 @@ import (
 	"sort"
 )
 
-const (
-	entryFormat = "Z*H40"
-)
-
 type Tree struct {
-	entries []Entry
+	entries map[string]ObjectInterface
 	oid     []byte
 }
 
-func (t *Tree) New(entries []Entry) {
-	t.entries = entries
+func (t *Tree) New() {
+	t.entries = map[string]ObjectInterface{}
 }
 
 func (t *Tree) ToString() string {
-	sort.SliceStable(t.entries, func(i, j int) bool {
-		return t.entries[i].GetName() < t.entries[i].GetName()
-	})
-
 	var entries []byte
 
-	for _, entry := range t.entries {
-		entries = append(entries, []byte(fmt.Sprintf("%s %s%x", entry.GetMode(), entry.GetName(), 0x00))...)
+	for name, entry := range t.entries {
+		entries = append(entries, []byte(fmt.Sprintf("%s %s%x", entry.GetMode(), name, 0x00))...)
 
 		entries = append(entries, entry.GetOid()...)
 	}
@@ -42,6 +34,53 @@ func (t *Tree) SetOid(oid []byte) {
 	t.oid = oid
 }
 
-func (b *Tree) GetType() string {
-	return "tree"
+func (t *Tree) GetType() string {
+	return TREE_TYPE
+}
+
+func (t *Tree) GetMode() string {
+	return DIRECTORY_MODE
+}
+
+func (t *Tree) AddEntry(parents []string, e Entry) {
+	if len(parents) == 0 {
+		t.entries[GetBaseName(e.ToString())] = ObjectInterface(&e)
+	} else {
+		firstParent := parents[0]
+		value, ok := t.entries[firstParent]
+		var tree Tree
+		if ok {
+			tree = *(value.(*Tree))
+		} else {
+			tree.New()
+		}
+		t.entries[GetBaseName(firstParent)] = ObjectInterface(&tree)
+		t.AddEntry(parents[1:], e)
+	}
+}
+
+func (t *Tree) Traverse(callback func(object ObjectInterface) error) {
+	for _, value := range t.entries {
+		if value.GetType() == TREE_TYPE {
+			value.(*Tree).Traverse(callback)
+		}
+	}
+
+	callback(ObjectInterface(t))
+}
+
+func (t Tree) Build(entries []Entry) Tree {
+	sort.SliceStable(entries, func(i, j int) bool {
+		return entries[i].ToString() < entries[i].ToString()
+	})
+
+	root := Tree{}
+	root.New()
+
+	for _, entry := range entries {
+		parents := entry.GetParentDirectories("")
+		root.AddEntry(parents, entry)
+	}
+
+	return root
 }

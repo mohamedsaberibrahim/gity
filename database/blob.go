@@ -24,3 +24,7 @@ func (b *Blob) SetOid(oid []byte) {
 func (b *Blob) GetType() string {
 	return "blob"
 }
+
+func (b *Blob) GetMode() string {
+	return REGULAR_MODE
+}

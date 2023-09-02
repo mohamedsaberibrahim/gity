@@ -33,7 +33,7 @@ var commitCmd = &cobra.Command{
 		fmt.Println("commit called")
 
 		dir, err := os.Getwd()
-		git_path := strings.Join([]string{dir, ".gity"}, string(os.PathSeparator))
+		git_path := strings.Join([]string{dir, database.METADATA_DIR}, string(os.PathSeparator))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
 		}
@@ -41,15 +41,12 @@ var commitCmd = &cobra.Command{
 		workspace := database.Workspace{}
 		db := database.Database{}
 		workspace.New(dir)
-		db.New(strings.Join([]string{git_path, "objects"}, string(os.PathSeparator)))
+		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
 		entries := []database.Entry{}
-		files := workspace.ListFiles()
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
+		files_name := workspace.ListFiles("")
+		for _, file_name := range files_name {
 
-			content, err := workspace.ReadFile(file)
+			content, err := workspace.ReadFile(file_name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
 			}
@@ -60,17 +57,16 @@ var commitCmd = &cobra.Command{
 			if err != nil {
 				fmt.Print(err)
 			}
-			stat, err := workspace.StatFile(file)
+			stat, err := workspace.StatFile(file_name)
 			if err != nil {
 				fmt.Print(err)
 			}
-			entry.New(file.Name(), blob.GetOid(), stat)
+			entry.New(file_name, blob.GetOid(), stat.Mode())
 			entries = append(entries, entry)
 		}
 
-		tree := database.Tree{}
-		tree.New(entries)
-		db.Store(&tree)
+		root := database.Tree{}.Build(entries)
+		root.Traverse(db.Store)
 		author := database.Author{}
 		author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
 
@@ -78,7 +74,7 @@ var commitCmd = &cobra.Command{
 		r.New(git_path)
 		parent, _ := r.ReadHead()
 		commit := database.Commit{}
-		commit.New(parent, tree.GetOid(), author, message)
+		commit.New(parent, root.GetOid(), author, message)
 		db.Store(&commit)
 
 		err = r.UpdateHead(commit.GetOid())

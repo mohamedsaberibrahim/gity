@@ -5,4 +5,5 @@ type ObjectInterface interface {
 	GetOid() []byte
 	SetOid([]byte)
 	GetType() string
+	GetMode() string
 }

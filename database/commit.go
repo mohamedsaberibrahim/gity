@@ -48,3 +48,7 @@ func (c *Commit) GetType() string {
 func (c *Commit) GetMessage() string {
 	return c.message
 }
+
+func (c *Commit) GetMode() string {
+	return "commit"
+}
