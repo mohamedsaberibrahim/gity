@@ -17,16 +17,16 @@ func (l *Lockfile) New(path string) {
 	l.lock_path = change_extension(l.file_path, ".lock")
 }
 
-func (l *Lockfile) HoldForUpdate() error {
+func (l *Lockfile) HoldForUpdate() (bool, error) {
 	if l.lock != nil {
-		return nil
+		return false, nil
 	}
 	var err error
 	l.lock, err = os.OpenFile(l.lock_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, os.FileMode(0777))
 	if err != nil {
-		return fmt.Errorf("[Lockfile][HoldForUpdate] error: %s", err)
+		return false, fmt.Errorf("[Lockfile][HoldForUpdate] error: %s", err)
 	}
-	return nil
+	return true, nil
 }
 
 func (l *Lockfile) Write(content string) error {

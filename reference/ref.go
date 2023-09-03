@@ -27,7 +27,7 @@ func (r *Ref) ReadHead() ([]byte, error) {
 func (r *Ref) UpdateHead(oid []byte) error {
 	lockfile := helper.Lockfile{}
 	lockfile.New(r.getHeadPath())
-	err := lockfile.HoldForUpdate()
+	_, err := lockfile.HoldForUpdate()
 	if err != nil {
 		return fmt.Errorf("Could not acquire lock on file: %s error: %e", r.getHeadPath(), err)
 	}
