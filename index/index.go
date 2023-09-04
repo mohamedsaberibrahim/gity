@@ -42,14 +42,12 @@ func (i *Index) WriteUpdates() bool {
 	copy(header[:4], "DIRC")
 	binary.BigEndian.PutUint32(header[4:8], 2)
 	binary.BigEndian.PutUint32(header[8:12], uint32(len(i.entries)))
-	fmt.Println("header: ", string(header))
 	i.write(string(header))
 
 	sort.Strings(i.keys)
 
 	for _, key := range i.keys {
 		entry := i.entries[key]
-		fmt.Println(entry.ToString())
 		i.write(entry.ToString())
 	}
 
@@ -62,12 +60,10 @@ func (i *Index) begin_write() {
 }
 
 func (i *Index) write(data string) error {
-	fmt.Println("Before writing into data: ", i.encoded_data)
 	if err := binary.Write(&i.encoded_data, binary.BigEndian, []byte(data)); err != nil {
 		fmt.Printf("Error: failed to write data - %v\n", err)
 		return err
 	}
-	fmt.Println("After writing into data: ", i.encoded_data)
 	i.lockfile.Write(data)
 	return nil
 }

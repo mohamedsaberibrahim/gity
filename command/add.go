@@ -43,23 +43,28 @@ to quickly create a Cobra application.`,
 		index := index.Index{}
 		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
 
-		for _, file_path := range args {
-			abs_path, err := filepath.Abs(file_path)
-			fmt.Println("abs_path: ", abs_path)
-			var st syscall.Stat_t
-			if err := syscall.Stat(file_path, &st); err != nil {
-				log.Fatal(err)
-			}
-
-			data, err := workspace.ReadFile(file_path)
+		for _, passed_path := range args {
+			abs_path, err := filepath.Abs(passed_path)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
 			}
+			files := workspace.ListFiles(abs_path)
+			for _, file_path := range files {
+				var st syscall.Stat_t
+				if err := syscall.Stat(file_path, &st); err != nil {
+					log.Fatal(err)
+				}
 
-			blob := database.Blob{}
-			blob.New(data)
-			db.Store(&blob)
-			index.Add(file_path, blob.GetOid(), st)
+				data, err := workspace.ReadFile(file_path)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
+				}
+
+				blob := database.Blob{}
+				blob.New(data)
+				db.Store(&blob)
+				index.Add(file_path, blob.GetOid(), st)
+			}
 		}
 
 		index.WriteUpdates()

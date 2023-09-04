@@ -69,19 +69,14 @@ func (e *Entry) ToString() string {
 	// Writing flags to data
 	binary.BigEndian.PutUint16(data[60:62], e.flags)
 	// Writing path to data
-	fmt.Println("Before adding path: ", e.path, len([]byte(e.path)))
 	copy(data[62:], []byte(e.path))
 	// Printing data path
 	data = append(data, []byte(fmt.Sprintf("\x00"))...)
 
 	for len(data)%ENTRY_BLOCK != 0 {
-		// log length before adding padding
-		fmt.Println("data length before padding: ", len(data))
 		data = append(data, []byte(fmt.Sprintf("\x00"))...)
-		// log length after adding padding
-		fmt.Println("data length after padding: ", len(data))
 	}
-	fmt.Println("data: ", string(data))
+
 	// Encode the data
 	return string(data)
 }
