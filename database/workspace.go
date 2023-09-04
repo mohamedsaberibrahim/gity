@@ -37,9 +37,6 @@ func (w *Workspace) ListFiles(dir string) []string {
 			file_names = append(file_names, w.ListFiles(file_path)...)
 		}
 	}
-	// for _, file_name := range file_names {
-	// 	fmt.Print("file name: ", file_name, "\n")
-	// }
 	return file_names
 }
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -43,6 +44,8 @@ to quickly create a Cobra application.`,
 		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
 
 		for _, file_path := range args {
+			abs_path, err := filepath.Abs(file_path)
+			fmt.Println("abs_path: ", abs_path)
 			var st syscall.Stat_t
 			if err := syscall.Stat(file_path, &st); err != nil {
 				log.Fatal(err)

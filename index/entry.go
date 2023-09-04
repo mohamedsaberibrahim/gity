@@ -46,13 +46,13 @@ func (e *Entry) New(path_name string, oid []byte, stat syscall.Stat_t) {
 	e.file_size = stat.Size
 	e.uid = stat.Uid
 	e.gid = stat.Gid
-	e.flags = uint16(math.Min(float64(stat.Size), float64(MAX_PATH_SIZE)))
+	e.flags = uint16(math.Min(float64(len([]byte(path_name))), float64(MAX_PATH_SIZE)))
 	e.path = path_name
 	e.oid = oid
 }
 
 func (e *Entry) ToString() string {
-	data := make([]byte, 70)
+	data := make([]byte, 62+len([]byte(e.path)))
 	binary.BigEndian.PutUint32(data[:4], uint32(e.ctime))
 	binary.BigEndian.PutUint32(data[4:8], uint32(e.ctime_nsec))
 	binary.BigEndian.PutUint32(data[8:12], uint32(e.mtime))
@@ -63,19 +63,24 @@ func (e *Entry) ToString() string {
 	binary.BigEndian.PutUint32(data[28:32], uint32(e.uid))
 	binary.BigEndian.PutUint32(data[32:36], uint32(e.gid))
 	binary.BigEndian.PutUint32(data[36:40], uint32(e.file_size))
-	// fmt.Println("data: ", string(data))
+	fmt.Printf("blob oid: %x\n", e.oid)
 	copy(data[40:60], e.oid)
 	fmt.Println("flags: ", e.flags)
 	// Writing flags to data
 	binary.BigEndian.PutUint16(data[60:62], e.flags)
 	// Writing path to data
+	fmt.Println("Before adding path: ", e.path, len([]byte(e.path)))
 	copy(data[62:], []byte(e.path))
 	// Printing data path
+	data = append(data, []byte(fmt.Sprintf("\x00"))...)
 
-	padLength := (ENTRY_BLOCK - len(data)%ENTRY_BLOCK) % ENTRY_BLOCK
-	padding := make([]byte, padLength)
-	data = append(data, padding...)
-	// Printing the data
+	for len(data)%ENTRY_BLOCK != 0 {
+		// log length before adding padding
+		fmt.Println("data length before padding: ", len(data))
+		data = append(data, []byte(fmt.Sprintf("\x00"))...)
+		// log length after adding padding
+		fmt.Println("data length after padding: ", len(data))
+	}
 	fmt.Println("data: ", string(data))
 	// Encode the data
 	return string(data)

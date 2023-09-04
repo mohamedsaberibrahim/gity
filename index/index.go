@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
+	"sort"
 	"syscall"
 
 	"github.com/mohamedsaberibrahim/gity/helper"
@@ -13,18 +14,22 @@ import (
 type Index struct {
 	entries      map[string]Entry
 	lockfile     helper.Lockfile
+	keys         []string
 	encoded_data bytes.Buffer
 }
 
 func (i *Index) New(path string) {
 	i.entries = map[string]Entry{}
+	i.keys = []string{}
 	i.lockfile.New(path)
 }
 
 func (i *Index) Add(path_name string, oid []byte, stat syscall.Stat_t) {
+	fmt.Println("Adding new entry to index: ", path_name)
 	entry := Entry{}
 	entry.New(path_name, oid, stat)
 	i.entries[path_name] = entry
+	i.keys = append(i.keys, path_name)
 }
 
 func (i *Index) WriteUpdates() bool {
@@ -40,10 +45,14 @@ func (i *Index) WriteUpdates() bool {
 	fmt.Println("header: ", string(header))
 	i.write(string(header))
 
-	for _, entry := range i.entries {
+	sort.Strings(i.keys)
+
+	for _, key := range i.keys {
+		entry := i.entries[key]
 		fmt.Println(entry.ToString())
 		i.write(entry.ToString())
 	}
+
 	i.finish_write()
 	return true
 }
@@ -53,16 +62,18 @@ func (i *Index) begin_write() {
 }
 
 func (i *Index) write(data string) error {
-	// if err := binary.Write(&i.encoded_data, binary.BigEndian, data); err != nil {
-	// 	return err
-	// }
+	fmt.Println("Before writing into data: ", i.encoded_data)
+	if err := binary.Write(&i.encoded_data, binary.BigEndian, []byte(data)); err != nil {
+		fmt.Printf("Error: failed to write data - %v\n", err)
+		return err
+	}
+	fmt.Println("After writing into data: ", i.encoded_data)
 	i.lockfile.Write(data)
 	return nil
 }
 
 func (i *Index) finish_write() {
 	objectId := sha1.Sum(i.encoded_data.Bytes())
-	fmt.Println("objectId: ", string(objectId[:]))
 	oid_hex := fmt.Sprintf("%x", objectId[:])
 	fmt.Println("objectId: ", oid_hex)
 	i.lockfile.Write(string(objectId[:]))
