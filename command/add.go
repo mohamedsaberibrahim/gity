@@ -42,6 +42,7 @@ to quickly create a Cobra application.`,
 		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
 		index := index.Index{}
 		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
+		index.LoadForUpdate()
 
 		for _, passed_path := range args {
 			abs_path, err := filepath.Abs(passed_path)

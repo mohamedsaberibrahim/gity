@@ -9,7 +9,7 @@ import (
 type Lockfile struct {
 	file_path string
 	lock_path string
-	lock      *os.File
+	Lock      *os.File
 }
 
 func (l *Lockfile) New(path string) {
@@ -18,11 +18,11 @@ func (l *Lockfile) New(path string) {
 }
 
 func (l *Lockfile) HoldForUpdate() (bool, error) {
-	if l.lock != nil {
+	if l.Lock != nil {
 		return false, nil
 	}
 	var err error
-	l.lock, err = os.OpenFile(l.lock_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, os.FileMode(0777))
+	l.Lock, err = os.OpenFile(l.lock_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, os.FileMode(0777))
 	if err != nil {
 		return false, fmt.Errorf("[Lockfile][HoldForUpdate] error: %s", err)
 	}
@@ -31,7 +31,7 @@ func (l *Lockfile) HoldForUpdate() (bool, error) {
 
 func (l *Lockfile) Write(content string) error {
 	l.raise_on_stale_lock()
-	_, err := l.lock.WriteString(content)
+	_, err := l.Lock.WriteString(content)
 	if err != nil {
 		return fmt.Errorf("[Lockfile][Write] error: %s", err)
 	}
@@ -40,13 +40,20 @@ func (l *Lockfile) Write(content string) error {
 
 func (l *Lockfile) Commit() {
 	l.raise_on_stale_lock()
-	l.lock.Close()
+	l.Lock.Close()
 	os.Rename(l.lock_path, l.file_path)
-	l.lock = nil
+	l.Lock = nil
+}
+
+func (l *Lockfile) Rollback() {
+	l.raise_on_stale_lock()
+	l.Lock.Close()
+	os.Remove(l.lock_path)
+	l.Lock = nil
 }
 
 func (l *Lockfile) raise_on_stale_lock() error {
-	if l.lock != nil {
+	if l.Lock != nil {
 		return fmt.Errorf("[Lockfile][raise_on_stale_lock] path: %s", l.lock_path)
 	}
 	return nil
