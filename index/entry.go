@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -17,19 +18,21 @@ const (
 )
 
 type Entry struct {
-	ctime      int64
-	ctime_nsec int64
-	mtime      int64
-	mtime_nsec int64
-	dev        uint32
-	ino        uint32
-	file_size  uint32
-	uid        uint32
-	gid        uint32
-	flags      uint16
-	path       string
-	oid        []byte
-	mode       uint32
+	ctime       int64
+	ctime_nsec  int64
+	mtime       int64
+	mtime_nsec  int64
+	dev         uint32
+	ino         uint32
+	file_size   uint32
+	uid         uint32
+	gid         uint32
+	flags       uint16
+	path        string
+	oid         []byte
+	mode        uint32
+	stat        syscall.Stat_t
+	parent_dirs []string
 }
 
 func (e *Entry) New(path_name string, oid []byte, stat syscall.Stat_t) {
@@ -50,6 +53,7 @@ func (e *Entry) New(path_name string, oid []byte, stat syscall.Stat_t) {
 	e.flags = uint16(math.Min(float64(len([]byte(path_name))), float64(MAX_PATH_SIZE)))
 	e.path = path_name
 	e.oid = oid
+	e.stat = stat
 }
 
 func (e *Entry) ToString() string {
@@ -101,4 +105,27 @@ func (e Entry) Parse(data []byte) Entry {
 
 func (e *Entry) GetPath() string {
 	return e.path
+}
+
+func (e *Entry) GetParentDirectories(path string) []string {
+	if path == "" {
+		path = e.path
+		fmt.Println("Executing descend for path: ", path)
+	}
+
+	dir := filepath.Dir(path)
+	if dir == "." {
+		return e.parent_dirs
+	}
+	e.GetParentDirectories(dir)
+	e.parent_dirs = append(e.parent_dirs, dir)
+	return e.parent_dirs
+}
+
+func (e *Entry) GetOid() []byte {
+	return e.oid
+}
+
+func (e *Entry) GetStat() syscall.Stat_t {
+	return e.stat
 }

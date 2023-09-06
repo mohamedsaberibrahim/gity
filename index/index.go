@@ -82,14 +82,8 @@ func (i *Index) WriteUpdates() bool {
 	binary.BigEndian.PutUint32(header[8:12], uint32(len(i.entries)))
 	writer.Write(header)
 
-	keys := []string{}
-	for key := range i.entries {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		entry := i.entries[key]
+	entries := i.GetSortedEntries()
+	for _, entry := range entries {
 		fmt.Println("Writing entry: ", entry.GetPath())
 		writer.Write([]byte(entry.ToString()))
 	}
@@ -98,6 +92,20 @@ func (i *Index) WriteUpdates() bool {
 	i.lockfile.Commit()
 	i.changed = false
 	return true
+}
+
+func (i *Index) GetSortedEntries() []Entry {
+	keys := []string{}
+	entries := []Entry{}
+	for key := range i.entries {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		entries = append(entries, i.entries[key])
+	}
+	return entries
 }
 
 func (i *Index) open_index_file() *os.File {

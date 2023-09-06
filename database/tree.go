@@ -3,6 +3,8 @@ package database
 import (
 	"fmt"
 	"sort"
+
+	"github.com/mohamedsaberibrahim/gity/index"
 )
 
 type Tree struct {
@@ -69,7 +71,7 @@ func (t *Tree) Traverse(callback func(object ObjectInterface) error) {
 	callback(ObjectInterface(t))
 }
 
-func (t Tree) Build(entries []Entry) Tree {
+func (t Tree) Build(entries []index.Entry) Tree {
 	sort.SliceStable(entries, func(i, j int) bool {
 		return entries[i].ToString() < entries[i].ToString()
 	})
@@ -77,9 +79,11 @@ func (t Tree) Build(entries []Entry) Tree {
 	root := Tree{}
 	root.New()
 
-	for _, entry := range entries {
-		parents := entry.GetParentDirectories("")
-		root.AddEntry(parents, entry)
+	for _, indexEntry := range entries {
+		parents := indexEntry.GetParentDirectories("")
+		databaseEntry := Entry{}
+		databaseEntry.New(indexEntry.ToString(), indexEntry.GetOid(), indexEntry.GetStat())
+		root.AddEntry(parents, databaseEntry)
 	}
 
 	return root

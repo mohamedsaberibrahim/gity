@@ -2,18 +2,18 @@ package database
 
 import (
 	"fmt"
-	"io/fs"
 	"path/filepath"
+	"syscall"
 )
 
 type Entry struct {
 	name        string
 	oid         []byte
-	stat        fs.FileMode
+	stat        syscall.Stat_t
 	parent_dirs []string
 }
 
-func (e *Entry) New(name string, oid []byte, stat fs.FileMode) {
+func (e *Entry) New(name string, oid []byte, stat syscall.Stat_t) {
 	e.name = name
 	e.oid = oid
 	e.stat = stat
@@ -33,7 +33,7 @@ func (e *Entry) GetOid() []byte {
 
 func (e *Entry) GetMode() string {
 	mode := REGULAR_MODE
-	if fmt.Sprintf("10%04o", e.stat.Perm()) == EXECUTABLE_MODE {
+	if e.stat.Mode == syscall.S_IXUSR {
 		mode = EXECUTABLE_MODE
 	}
 	return mode

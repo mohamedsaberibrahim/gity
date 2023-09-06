@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mohamedsaberibrahim/gity/database"
+	"github.com/mohamedsaberibrahim/gity/index"
 	"github.com/mohamedsaberibrahim/gity/reference"
 	"github.com/spf13/cobra"
 )
@@ -42,30 +43,11 @@ var commitCmd = &cobra.Command{
 		db := database.Database{}
 		workspace.New(dir)
 		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
-		entries := []database.Entry{}
-		files_name := workspace.ListFiles("")
-		for _, file_name := range files_name {
+		index := index.Index{}
+		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
+		index.Load()
 
-			content, err := workspace.ReadFile(file_name)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
-			}
-			blob := database.Blob{}
-			entry := database.Entry{}
-			blob.New(content)
-			err = db.Store(&blob)
-			if err != nil {
-				fmt.Print(err)
-			}
-			stat, err := workspace.StatFile(file_name)
-			if err != nil {
-				fmt.Print(err)
-			}
-			entry.New(file_name, blob.GetOid(), stat.Mode())
-			entries = append(entries, entry)
-		}
-
-		root := database.Tree{}.Build(entries)
+		root := database.Tree{}.Build(index.GetSortedEntries())
 		root.Traverse(db.Store)
 		author := database.Author{}
 		author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
