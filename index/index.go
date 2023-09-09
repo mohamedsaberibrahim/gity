@@ -110,6 +110,10 @@ func (i *Index) GetSortedEntries() ([]string, []Entry) {
 	return keys, entries
 }
 
+func (i *Index) ReleaseLock() {
+	i.lockfile.Rollback()
+}
+
 func (i *Index) open_index_file() *os.File {
 	file, err := os.Open(i.path)
 	if err != nil {
