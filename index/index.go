@@ -65,6 +65,7 @@ func (i *Index) Add(path_name string, oid []byte, stat syscall.Stat_t) {
 	fmt.Println("Restoring entry to index: ", path_name)
 	entry := Entry{}
 	entry.New(path_name, oid, stat)
+	i.discard_conflicts(entry)
 	i.store_entry(entry)
 	i.changed = true
 }
@@ -161,4 +162,14 @@ func (i *Index) store_entry(entry Entry) {
 	fmt.Println("Entries size before: ", len(i.entries), entry.GetPath())
 	i.entries[entry.path] = entry
 	fmt.Println("Entries size after: ", len(i.entries), entry.GetPath())
+}
+
+func (i *Index) discard_conflicts(entry Entry) {
+	parents := entry.GetParentDirectories(entry.path)
+	for _, parent := range parents {
+		if _, ok := i.entries[parent]; ok {
+			fmt.Println("Discarding entry: ", parent)
+			delete(i.entries, parent)
+		}
+	}
 }
