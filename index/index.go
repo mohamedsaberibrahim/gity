@@ -34,14 +34,13 @@ func (i *Index) New(path string) {
 	i.changed = false
 }
 
-func (i *Index) LoadForUpdate() bool {
-	held_successfully, _ := i.lockfile.HoldForUpdate()
-	if !held_successfully {
-		// fmt.Println("Could not lock index file")
-		return false
+func (i *Index) LoadForUpdate() (bool, error) {
+	_, err := i.lockfile.HoldForUpdate()
+	if err != nil {
+		return false, err
 	}
 	i.Load()
-	return true
+	return true, nil
 }
 
 func (i *Index) Load() {

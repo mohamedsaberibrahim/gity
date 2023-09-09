@@ -1,7 +1,9 @@
 package helper
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -24,7 +26,10 @@ func (l *Lockfile) HoldForUpdate() (bool, error) {
 	var err error
 	l.Lock, err = os.OpenFile(l.lock_path, os.O_RDWR|os.O_CREATE|os.O_EXCL, os.FileMode(0777))
 	if err != nil {
-		return false, fmt.Errorf("[Lockfile][HoldForUpdate] error: %s", err)
+		if errors.Is(err, fs.ErrExist) {
+			return false, fmt.Errorf("Unable to create %s: File exists.", l.lock_path)
+		}
+		return false, err
 	}
 	return true, nil
 }

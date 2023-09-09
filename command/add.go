@@ -43,7 +43,12 @@ to quickly create a Cobra application.`,
 		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
 		index := index.Index{}
 		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
-		index.LoadForUpdate()
+
+		_, err = index.LoadForUpdate()
+		if err != nil {
+			fmt.Printf("fatal: %s\n\nAnother jit process seems to be running in this repository.\nPlease make sure all processes are terminated then try again.\nIf it still fails, a jit process may have crashed in this\nrepository earlier: remove the file manually to continue.\n", err)
+			os.Exit(128)
+		}
 
 		paths, err := get_paths(workspace, args)
 		if err != nil {
