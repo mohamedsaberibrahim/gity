@@ -46,8 +46,8 @@ var commitCmd = &cobra.Command{
 		index := index.Index{}
 		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
 		index.Load()
-
-		root := database.Tree{}.Build(index.GetSortedEntries())
+		_, entries := index.GetSortedEntries()
+		root := database.Tree{}.Build(entries)
 		root.Traverse(db.Store)
 		author := database.Author{}
 		author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
