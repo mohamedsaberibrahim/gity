@@ -1,7 +1,6 @@
 package index
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -18,16 +17,18 @@ const (
 	ENTRY_MIN_SIZE = 64
 )
 
+type void struct{}
 type Index struct {
-	entries      map[string]Entry
-	lockfile     helper.Lockfile
-	path         string
-	encoded_data bytes.Buffer
-	changed      bool
+	path     string
+	entries  map[string]Entry
+	parents  map[string]map[string]void
+	lockfile helper.Lockfile
+	changed  bool
 }
 
 func (i *Index) New(path string) {
 	i.entries = map[string]Entry{}
+	i.parents = map[string]map[string]void{}
 	i.lockfile.New(path)
 	i.path = path
 	i.changed = false
@@ -162,6 +163,14 @@ func (i *Index) store_entry(entry Entry) {
 	fmt.Println("Entries size before: ", len(i.entries), entry.GetPath())
 	i.entries[entry.path] = entry
 	fmt.Println("Entries size after: ", len(i.entries), entry.GetPath())
+	parents := entry.GetParentDirectories(entry.path)
+	for _, parent := range parents {
+		if _, ok := i.parents[parent]; !ok {
+			i.parents[parent] = map[string]void{}
+			i.parents[parent][entry.path] = void{}
+		}
+		i.parents[parent][entry.path] = void{}
+	}
 }
 
 func (i *Index) discard_conflicts(entry Entry) {
@@ -170,6 +179,34 @@ func (i *Index) discard_conflicts(entry Entry) {
 		if _, ok := i.entries[parent]; ok {
 			fmt.Println("Discarding entry: ", parent)
 			delete(i.entries, parent)
+		}
+	}
+	i.remove_children(entry.path)
+}
+
+func (i *Index) remove_children(path string) {
+	if _, ok := i.parents[path]; !ok {
+		return
+	}
+
+	for child := range i.parents[path] {
+		fmt.Println("Discarding entry: ", child)
+		i.remove_entry(child)
+	}
+}
+
+func (i *Index) remove_entry(path string) {
+	entry, ok := i.entries[path]
+	if !ok {
+		return
+	}
+	parents := entry.GetParentDirectories(path)
+	delete(i.entries, path)
+	delete(i.parents, path)
+	for _, parent := range parents {
+		delete(i.parents[parent], path)
+		if len(i.parents[parent]) == 0 {
+			delete(i.parents, parent)
 		}
 	}
 }
