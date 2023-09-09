@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/mohamedsaberibrahim/gity/app"
 	"github.com/mohamedsaberibrahim/gity/database"
 	"github.com/mohamedsaberibrahim/gity/index"
 	"github.com/spf13/cobra"
@@ -35,36 +36,31 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
 		}
-		workspace := database.Workspace{}
-		db := database.Database{}
-		workspace.New(dir)
 
-		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
-		index := index.Index{}
-		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
+		repo := app.Repository{}
+		repo.New(git_path)
 
-		_, err = index.LoadForUpdate()
+		_, err = repo.Index.LoadForUpdate()
 		if err != nil {
 			fmt.Printf("fatal: %s\n\nAnother jit process seems to be running in this repository.\nPlease make sure all processes are terminated then try again.\nIf it still fails, a jit process may have crashed in this\nrepository earlier: remove the file manually to continue.\n", err)
 			os.Exit(128)
 		}
 
-		paths, err := get_paths(workspace, args)
+		paths, err := get_paths(repo.Workspace, args)
 		if err != nil {
 			fmt.Printf("fatal: %s\n", err)
-			index.ReleaseLock()
+			repo.Index.ReleaseLock()
 			os.Exit(128)
 		}
-		err = add_entries(paths, &workspace, &db, &index)
-		fmt.Println("err: ", err)
+		err = add_entries(paths, &repo.Workspace, &repo.Database, &repo.Index)
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
 			fmt.Println("fatal: adding files failed")
-			index.ReleaseLock()
+			repo.Index.ReleaseLock()
 			os.Exit(128)
 		}
-		index.WriteUpdates()
-
+		repo.Index.WriteUpdates()
+		os.Exit(0)
 	},
 }
 

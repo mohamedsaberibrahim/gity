@@ -10,9 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mohamedsaberibrahim/gity/app"
 	"github.com/mohamedsaberibrahim/gity/database"
-	"github.com/mohamedsaberibrahim/gity/index"
-	"github.com/mohamedsaberibrahim/gity/reference"
 	"github.com/spf13/cobra"
 )
 
@@ -35,31 +34,26 @@ var commitCmd = &cobra.Command{
 
 		dir, err := os.Getwd()
 		git_path := strings.Join([]string{dir, database.METADATA_DIR}, string(os.PathSeparator))
+
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
 		}
+		repo := app.Repository{}
+		repo.New(git_path)
 
-		workspace := database.Workspace{}
-		db := database.Database{}
-		workspace.New(dir)
-		db.New(strings.Join([]string{git_path, database.DATABASE_DIR}, string(os.PathSeparator)))
-		index := index.Index{}
-		index.New(strings.Join([]string{git_path, "index"}, string(os.PathSeparator)))
-		index.Load()
-		_, entries := index.GetSortedEntries()
+		repo.Index.Load()
+		_, entries := repo.Index.GetSortedEntries()
 		root := database.Tree{}.Build(entries)
-		root.Traverse(db.Store)
+		root.Traverse(repo.Database.Store)
 		author := database.Author{}
 		author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
 
-		r := reference.Ref{}
-		r.New(git_path)
-		parent, _ := r.ReadHead()
+		parent, _ := repo.Refs.ReadHead()
 		commit := database.Commit{}
 		commit.New(parent, root.GetOid(), author, message)
-		db.Store(&commit)
+		repo.Database.Store(&commit)
 
-		err = r.UpdateHead(commit.GetOid())
+		err = repo.Refs.UpdateHead(commit.GetOid())
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -68,6 +62,7 @@ var commitCmd = &cobra.Command{
 			root_commit = "(root-commit) "
 		}
 		fmt.Printf("[%s%x] %s\n", root_commit, commit.GetOid(), commit.GetMessage())
+		os.Exit(0)
 	},
 }
 
