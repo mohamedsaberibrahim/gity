@@ -63,14 +63,14 @@ func (w *Workspace) ListFiles(dir string) ([]string, error) {
 	return file_names, nil
 }
 
-func (w *Workspace) ReadFile(file string) ([]byte, *globals.ValueError) {
+func (w *Workspace) ReadFile(file string) ([]byte, error) {
 	full_dir := strings.Join([]string{w.root_path, file}, string(os.PathSeparator))
 	data, err := os.ReadFile(full_dir)
 	if err != nil {
 		if errors.Is(err, fs.ErrPermission) {
-			return nil, globals.NewValueError(globals.ErrPermissionDenied, fmt.Errorf("open(%s): Permission denied", file))
+			return nil, fmt.Errorf("open(%s): Permission denied", file)
 		} else {
-			return nil, globals.NewValueError(globals.ErrNotCustomized, err)
+			return nil, err
 		}
 	}
 	return data, nil

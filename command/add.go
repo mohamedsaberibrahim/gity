@@ -13,7 +13,6 @@ import (
 	"syscall"
 
 	"github.com/mohamedsaberibrahim/gity/database"
-	"github.com/mohamedsaberibrahim/gity/globals"
 	"github.com/mohamedsaberibrahim/gity/index"
 	"github.com/spf13/cobra"
 )
@@ -56,7 +55,8 @@ to quickly create a Cobra application.`,
 			index.ReleaseLock()
 			os.Exit(128)
 		}
-		err = add_entries(paths, workspace, db, index)
+		err = add_entries(paths, &workspace, &db, &index)
+		fmt.Println("err: ", err)
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
 			fmt.Println("fatal: adding files failed")
@@ -88,22 +88,24 @@ func get_paths(workspace database.Workspace, args []string) ([]string, error) {
 	return paths, nil
 }
 
-func add_entries(paths []string, workspace database.Workspace, db database.Database, index index.Index) *globals.ValueError {
+func add_entries(paths []string, workspace *database.Workspace, db *database.Database, index *index.Index) error {
+	fmt.Println("Adding entries: ", paths)
 	for _, file_path := range paths {
 		var st syscall.Stat_t
 		if err := syscall.Stat(file_path, &st); err != nil {
 			log.Fatal(err)
 		}
 
-		data, err := workspace.ReadFile(file_path)
+		data, err := (*workspace).ReadFile(file_path)
 		if err != nil {
-			return globals.NewValueError(err.Value, fmt.Errorf("%s\nerror: unable to index file %s", err.Err, file_path))
+			return fmt.Errorf("%s\nerror: unable to index file %s", err, file_path)
 		}
 
 		blob := database.Blob{}
 		blob.New(data)
-		db.Store(&blob)
-		index.Add(file_path, blob.GetOid(), st)
+		(*db).Store(&blob)
+		(*index).Add(file_path, blob.GetOid(), st)
+		fmt.Println("After adding to index: ", file_path)
 	}
 	return nil
 }
