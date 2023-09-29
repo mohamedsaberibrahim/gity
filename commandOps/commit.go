@@ -2,6 +2,7 @@ package commandOps
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -11,18 +12,27 @@ import (
 )
 
 type Commit struct {
-	repo app.Repository
+	repo    app.Repository
+	dir     string
+	stdout  io.Writer
+	stderr  io.Writer
+	Getenv  func(key string) string
+	args    []string
+	message string
 }
 
-func (c Commit) Run(args []string, message string) {
+func (c *Commit) New(dir string, stdout io.Writer, stderr io.Writer, Getenv func(key string) string, args []string, message string) {
+	c.dir = dir
+	c.stdout = stdout
+	c.stderr = stderr
+	c.Getenv = Getenv
+	c.args = args
+	c.message = message
+}
+
+func (c *Commit) Run() int {
 	fmt.Println("commit called")
-
-	dir, err := os.Getwd()
-	git_path := strings.Join([]string{dir, database.METADATA_DIR}, string(os.PathSeparator))
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
-	}
+	git_path := strings.Join([]string{c.dir, database.METADATA_DIR}, string(os.PathSeparator))
 
 	c.repo = app.Repository{}
 	c.repo.New(git_path)
@@ -32,21 +42,18 @@ func (c Commit) Run(args []string, message string) {
 	root := database.Tree{}.Build(entries)
 	root.Traverse(c.repo.Database.Store)
 	author := database.Author{}
-	author.New(os.Getenv("GIT_AUTHOR_NAME"), os.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
+	author.New(c.Getenv("GIT_AUTHOR_NAME"), c.Getenv("GIT_AUTHOR_EMAIL"), time.Now())
 
 	parent, _ := c.repo.Refs.ReadHead()
 	commit := database.Commit{}
-	commit.New(parent, root.GetOid(), author, message)
+	commit.New(parent, root.GetOid(), author, c.message)
 	c.repo.Database.Store(&commit)
 
-	err = c.repo.Refs.UpdateHead(commit.GetOid())
-	if err != nil {
-		fmt.Print(err)
-	}
+	c.repo.Refs.UpdateHead(commit.GetOid())
 	root_commit := ""
 	if parent == nil {
 		root_commit = "(root-commit) "
 	}
 	fmt.Printf("[%s%x] %s\n", root_commit, commit.GetOid(), commit.GetMessage())
-	os.Exit(0)
+	return 0
 }

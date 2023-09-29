@@ -5,6 +5,9 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package command
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/mohamedsaberibrahim/gity/commandOps"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +21,14 @@ func init() {
 		Long:  COMMIT_COMMIT_LONG_DESC,
 		Run: func(cmd *cobra.Command, args []string) {
 			commit := commandOps.Commit{}
-			commit.Run(args, message)
+
+			dir, err := os.Getwd()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: failed to read the current directory - %v\n", err)
+			}
+			commit.New(dir, os.Stdout, os.Stderr, os.Getenv, args, message)
+			status := commit.Run()
+			os.Exit(status)
 		},
 	}
 
